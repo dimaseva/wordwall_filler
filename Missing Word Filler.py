@@ -3,15 +3,16 @@ from main import prepare_driver, first_enter, enter_by_cookies, get_sentences, c
 import random
 
 font = ('Helvetica', 15,  'bold')
-width = 625
+width = 580
 
 meme = [
 'войти через куки',
 'войти через коки',
-'ева лучшая',
+'ева лучшая эдишн',
 'тук-тук налоговая'
 ]
 
+CTk.set_appearance_mode("dark")
 
 class CustomBtn(CTk.CTkButton):
     def __init__(self, sentense, **kwargs):
@@ -25,7 +26,7 @@ class App(CTk.CTk):
         self.driver = driver
 
         self.geometry(f'{width}x500')
-        self.title("Wordwall Filler")
+        self.title("Missing Word Filler")
         self.resizable(False, False)
 
         self.update_idletasks()
@@ -41,14 +42,18 @@ class App(CTk.CTk):
 
         self.main_frame = CTk.CTkFrame(master=self, width=400, height=350,  fg_color="royal blue")
         self.second_frame = CTk.CTkFrame(master=self, width=600,  fg_color="royal blue")
+        self.window_frame = CTk.CTkFrame(master=self, width=600,  fg_color="royal blue")
         self.phrase_frame = CTk.CTkFrame(master=self, width=900, height=500)
+        self.penultimate_frame = CTk.CTkFrame(master=self, width=400, height=350,  fg_color="royal blue")
         self.end_frame = CTk.CTkFrame(master=self, width=400, height=350,  fg_color="royal blue")
         
 
 
         self.setup_main_frame()
         self.setup_second_frame()
+        self.setup_window_frame()
         self.setup_phrase_frame()
+        self.setup_penultimate_frame()
         self.setup_end_frame()
         
         # self.show_phrase1()
@@ -57,6 +62,10 @@ class App(CTk.CTk):
         self.show_main()
         # self.show_end()
         # self.e1.grid(row=3, column=0)
+        # self.show_second()
+        # self.show_window()
+        # self.show_penultimate()
+
 
 
 
@@ -64,7 +73,7 @@ class App(CTk.CTk):
 
     #btn func --------------------------------------------------------------
 
-    def login(self):
+    def login(self, *args):
         self.info_label.configure(text_color='royal blue')
         user = self.log_entry.get()
         password = self.pass_entry.get()
@@ -81,18 +90,26 @@ class App(CTk.CTk):
             self.cookie_btn.configure(state="disabled")
             self.info_label.configure(text_color='white')
 
-    def take_name_n_count(self, *args):
+    def take_name(self, *args):
         self.second_info_label.configure(text_color='royal blue')
-        self.sentences_count = self.count_entry.get()
         self.game_name = self.name_entry.get()
-        try:
-            if not self.game_name or not self.sentences_count.isnumeric():
-                self.second_info_label.configure(text_color='white')
-            else:
-                self.sentences_count = int(self.sentences_count)
-                self.show_phrase1()
-        except:
+
+        if not self.game_name:
             self.second_info_label.configure(text_color='white')
+        else:
+            self.show_window()
+        
+
+    def take_count(self, *args):
+        self.window_info_label.configure(text_color='royal blue')
+        self.sentences_count = self.count_entry.get()
+
+        if not self.sentences_count.isnumeric():
+            self.window_info_label.configure(text_color='white')
+        else:
+            self.sentences_count = int(self.sentences_count)
+            self.show_phrase1()
+
 
     def take_sentences(self, *args):
         self.phrase = self.phrase_find_entry.get()
@@ -104,7 +121,7 @@ class App(CTk.CTk):
                 self.sentences = result['sentences']
                 self.info_label_phrase.configure(text="")
                 for i, sentence in enumerate(self.sentences):
-                    label = CTk.CTkTextbox(master=self.frame_buttons, width=510, height=90, font=font, border_color='grey', border_width=3, fg_color='transparent', text_color='snow')
+                    label = CTk.CTkTextbox(master=self.frame_buttons, width=470, height=90, font=font, border_color='grey', border_width=3, fg_color='transparent', text_color='snow')
                     label.insert('insert', sentence)
                     start = sentence.lower().find(self.phrase)
                     label.tag_add('word', f'1.{start}', f'1.{start + len(self.phrase)}')
@@ -134,38 +151,30 @@ class App(CTk.CTk):
         self.textbox_sentence_edit.tag_add('word', f'1.{start}', f'1.{start + len(self.phrase)}')
         self.textbox_sentence_edit.tag_config('word', foreground="pale green")
 
-        self.missed_words_entry.insert('insert', self.phrase + ',')
+        self.missed_words_entry.insert('insert', self.selected[start:start + len(self.phrase)] + ',')
 
         self.show_phrase3()
 
     def add_to_list(self, *args):
-        miss_list = []
-        incorect_list = []
-
+        self.info_label_phrase.configure(text="")
         if self.textbox_sentence_edit.get("1.0", 'end') != '\n':
 
             for word in self.missed_words_entry.get().strip().split(','):
                 if not word:
                     continue
-                start = self.selected.find(word)
+                self.selected = f"{self.curr+1}. {self.selected}\n"
+                start = (self.selected).find(word)
                 if start != -1:
-                    miss_list.append((start, len(word)))
+                    self.miss_list.append((len(self.sentences_for_dict) + start, len(word)))
 
                 else:
                     self.info_label_phrase.configure(text="Can't find a phrase/word. Please recheck")
                     return
+            
+            self.sentences_for_dict += self.selected
 
-            incorect_list = [word for word in self.wrong_words_entry.get().strip().split(',')]
+            self.incorect_list += [word for word in self.wrong_words_entry.get().strip().split(',')]
 
-            if len(miss_list) < 2:
-                self.info_label_phrase.configure(text="There must be at least 2 items")
-                return
-
-            self.list_of_settings.append({
-                        'sentence' : self.selected,
-                        'miss' : miss_list,
-                        'incorect' : incorect_list
-                    })
             self.curr += 1
             self.check_curr_sentence()
 
@@ -179,23 +188,37 @@ class App(CTk.CTk):
             self.show_phrase1()
 
         else:
-            self.make_game()
+            self.list_of_settings.append({
+                        'sentences' : self.sentences_for_dict,
+                        'miss' : self.miss_list,
+                        'incorect' : self.incorect_list
+                    })
+            self.show_penultimate()
 
     def make_game(self):
 
-        create_game(self.driver, self.game_name, self.sentences_count, self.list_of_settings)
+        create_game(self.driver, self.game_name, self.window_counter, self.list_of_settings)
         # print(self.game_name, int(self.sentences_count), self.list_of_settings)
-        self.end_info.configure(text='Done!')
-        self.e1.grid(row=3, column=0)
 
         self.show_end()
+
+    def create_new_window(self):
+        self.count_entry.delete(0, 'end')
+        self.clean_up()
+
+        self.window_counter += 1
+        self.window_count_label.configure(text=f"Window #{self.window_counter}")
+        self.counter_label.configure(text=f'#1')
+
+        self.show_window()
 
     def another_game(self):
         self.name_entry.delete(0, 'end')
         self.count_entry.delete(0, 'end')
+        self.list_of_settings = []
 
         self.clean_up()
-
+        self.window_count_label.configure(text=f"Window #1")
         self.show_second()
 
     def clean_up(self):
@@ -223,18 +246,28 @@ class App(CTk.CTk):
 
     def show_main(self):
         self.main_frame.place(relx=0.5, rely=0.5, anchor='center')
+        self.bind('<Return>', self.login)
 
     def show_second(self):
         self.main_frame.place_forget()
         self.end_frame.place_forget()
         self.second_frame.place(relx=0.5, rely=0.5, anchor='center')
         self.list_of_settings = []
+        self.window_counter = 1
+        self.bind('<Return>', self.take_name)
+
+    def show_window(self):
+        self.second_frame.place_forget()
+        self.penultimate_frame.place_forget()
         self.curr = 0
-        self.e1.grid_forget()
-        self.bind('<Return>', self.take_name_n_count)
+        self.sentences_for_dict = ''
+        self.miss_list = []
+        self.incorect_list = []
+        self.window_frame.place(relx=0.5, rely=0.5, anchor='center')
+        self.bind('<Return>', self.take_count)
 
     def show_phrase1(self):
-        self.second_frame.place_forget()
+        self.window_frame.place_forget()
         self.p3.grid_forget()
         # self.phrase_frame.place(relx=0.1, rely=0.1, anchor='s')
         self.phrase_frame.grid(row=0, column=0)
@@ -251,8 +284,13 @@ class App(CTk.CTk):
         self.p3.grid(row=2, column=0)
         self.bind('<Return>', self.add_to_list)
 
-    def show_end(self):
+    def show_penultimate(self):
         self.phrase_frame.grid_forget()
+        self.penultimate_frame.place(relx=0.5, rely=0.5, anchor='center')
+        self.bind('<Return>', lambda x : 1)
+
+    def show_end(self):
+        self.penultimate_frame.place_forget()
         self.end_frame.place(relx=0.5, rely=0.5, anchor='center')
         self.bind('<Return>', lambda x : 1)
 
@@ -300,35 +338,47 @@ class App(CTk.CTk):
 
     def setup_second_frame(self):
         #bind there
-        
 
         self.a1 = CTk.CTkFrame(master=self.second_frame, width=600, height=500, fg_color='transparent')
         self.a1.grid(row=0, column=0)
 
         self.name_label = CTk.CTkLabel(master=self.a1, text='Enter game name:', width=100, font=font)
-        self.name_label.grid(row=0, column=0)
+        self.name_label.grid(row=0, column=0, padx=5)
 
         self.name_entry = CTk.CTkEntry(master=self.a1, width=200, font=font)
         self.name_entry.grid(row=0, column=1)
 
-        self.count_label = CTk.CTkLabel(master=self.a1, text='Number of sentences:', width=150, font=font)
-        self.count_label.grid(row=1, column=0, padx=10)
-
-        self.count_entry = CTk.CTkEntry(master=self.a1, width=200, font=font)
-        self.count_entry.grid(row=1, column=1)
-
-        self.second_info_label = CTk.CTkLabel(master=self.second_frame, font=font, text='Fill in the fields correctly', text_color='royal blue')
+        self.second_info_label = CTk.CTkLabel(master=self.second_frame, font=font, text='Fill in the field correctly', width=400,  text_color='royal blue')
         self.second_info_label.grid(column=0, row=1)
 
-        self.next_btn = CTk.CTkButton(master=self.second_frame, text='Next', width=100, fg_color='black', font=font, command=self.take_name_n_count)
+        self.next_btn = CTk.CTkButton(master=self.second_frame, text='Next', width=100, fg_color='black', font=font, command=self.take_name)
         self.next_btn.grid(column=0, row=2, pady=2)
+
+    def setup_window_frame(self):
+
+        self.window_count_label = CTk.CTkLabel(master=self.window_frame, text='Window #1', width=150, font=('Helvetica', 25,  'bold'))
+        self.window_count_label.grid(row=0, column=0, pady=10)
+
+        self.b1 = CTk.CTkFrame(master=self.window_frame, width=600, height=500, fg_color='transparent')
+        self.b1.grid(row=1, column=0)
+
+        self.count_label = CTk.CTkLabel(master=self.b1, text='Number of sentences:', width=150, font=font)
+        self.count_label.grid(row=1, column=0, padx=10)
+
+        self.count_entry = CTk.CTkEntry(master=self.b1, width=200, font=font)
+        self.count_entry.grid(row=1, column=1)
+
+        self.window_info_label = CTk.CTkLabel(master=self.window_frame, font=font, text='Fill in the field correctly', text_color='royal blue')
+        self.window_info_label.grid(column=0, row=2)
+
+        self.window_next_btn = CTk.CTkButton(master=self.window_frame, text='Next', width=100, fg_color='black', font=font, command=self.take_count)
+        self.window_next_btn.grid(column=0, row=3, pady=2)
         
-#set\choose\edit frame
-#make unbind
+
     def setup_phrase_frame(self):
         #bind there
 
-        self.counter_label = CTk.CTkLabel(master=self.phrase_frame, width=width,  font=('Helvetica', 40,  'bold'), text='#1', fg_color='royal blue')
+        self.counter_label = CTk.CTkLabel(master=self.phrase_frame, width=width, height=50, font=('Helvetica', 40,  'bold'), text='#1', fg_color='royal blue')
         self.counter_label.grid(column=0, row=0)
 
         self.info_label_phrase = CTk.CTkLabel(master=self.phrase_frame, text='', font=font)
@@ -360,9 +410,9 @@ class App(CTk.CTk):
 
     def phrase_frame2(self):
 
-        self.p2 = CTk.CTkFrame(master=self.phrase_frame, width=600, height=500)
+        self.p2 = CTk.CTkFrame(master=self.phrase_frame, width=700, height=500)
 #___________________________________________________________ here height of canvas
-        self.canvas = CTk.CTkCanvas(master=self.p2, width=600,height=450, bd=0, highlightthickness=0, relief='ridge')
+        self.canvas = CTk.CTkCanvas(master=self.p2, width=700,height=525, highlightthickness=0,)# relief='ridge')
         self.canvas.grid(row=0, column=0, sticky="news")
 
         self.vsb = CTk.CTkScrollbar(master=self.p2, orientation="vertical", command=self.canvas.yview, width=20)
@@ -426,28 +476,51 @@ class App(CTk.CTk):
     #     import sys
     #     sys.exit()
 
-    def setup_end_frame(self):
-        self.pass_label3 = CTk.CTkLabel(master=self.end_frame, text='', font=font)
+    def setup_penultimate_frame(self):
+        self.pass_label3 = CTk.CTkLabel(master=self.penultimate_frame, text='', font=font)
         self.pass_label3.grid(row=0, column=0)
 
-        self.end_info = CTk.CTkLabel(master=self.end_frame, text='Wait Please', width=304, font=font, text_color='white')
+        self.penultimate_info = CTk.CTkLabel(master=self.penultimate_frame, text='Window Added!', width=365, font=font, text_color='white')
+        self.penultimate_info.grid(row=1, column=0)
+        
+
+        self.pass_label4 = CTk.CTkLabel(master=self.penultimate_frame, text='', font=font)
+        self.pass_label4.grid(row=2, column=0)
+
+        self.k1 = CTk.CTkFrame(master=self.penultimate_frame, width=400, height=500, fg_color='transparent')
+        self.k1.grid(row=3, column=0)
+        
+        self.another_one_window = CTk.CTkButton(master=self.k1, text='Create \nAnother Window', width=100, fg_color='black', font=font, command=self.create_new_window)
+        self.another_one_window.grid(column=0, row=0, padx=3)
+
+        self.pass_label5 = CTk.CTkLabel(master=self.k1, text='', width=100,  font=font)
+        self.pass_label5.grid(column=1, row=0,)
+
+        self.create_game_btn = CTk.CTkButton(master=self.k1, text='Create Game', width=100, height=42, fg_color='black', font=font, command=self.make_game)
+        self.create_game_btn.grid(column=2, row=0, padx=3)
+
+    def setup_end_frame(self):
+        self.pass_label6 = CTk.CTkLabel(master=self.end_frame, text='', font=font)
+        self.pass_label6.grid(row=0, column=0)
+
+        self.end_info = CTk.CTkLabel(master=self.end_frame, text='Game Created!', width=304, font=font, text_color='white')
         self.end_info.grid(row=1, column=0)
         
 
-        self.pass_label4 = CTk.CTkLabel(master=self.end_frame, text='', font=font)
-        self.pass_label4.grid(row=2, column=0)
+        self.pass_label7 = CTk.CTkLabel(master=self.end_frame, text='', font=font)
+        self.pass_label7.grid(row=2, column=0)
 
         self.e1 = CTk.CTkFrame(master=self.end_frame, width=400, height=500, fg_color='transparent')
-
+        self.e1.grid(row=3, column=0)
         
-        self.another_one = CTk.CTkButton(master=self.e1, text='Another one', width=100, fg_color='black', font=font, command=self.another_game)
-        self.another_one.grid(column=0, row=0, )
+        self.another_one_game = CTk.CTkButton(master=self.e1, text='Another one', width=100, fg_color='black', font=font, command=self.another_game)
+        self.another_one_game.grid(column=0, row=0, padx=3)
 
-        self.pass_label5 = CTk.CTkLabel(master=self.e1, text='', width=100,  font=font)
-        self.pass_label5.grid(column=1, row=0,)
+        self.pass_label8 = CTk.CTkLabel(master=self.e1, text='', width=100,  font=font)
+        self.pass_label8.grid(column=1, row=0,)
 
         self.exit = CTk.CTkButton(master=self.e1, text='Quit', width=100, fg_color='black', font=font, command=self.destroy)
-        self.exit.grid(column=2, row=0,)
+        self.exit.grid(column=2, row=0, padx=3)
 
 
 

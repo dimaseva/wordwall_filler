@@ -1,21 +1,15 @@
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 import requests, os, zipfile, pickle
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.action_chains import ActionChains
 import time 
-import math
 
 
 
 WORK_FOLDER = "work_folder"
 WORDWALL_LOGIN_URL = "https://wordwall.net/account/login"
 WORDWALL_CREATE_URL = "https://wordwall.net/create/entercontent?templateId=36"
-
-# username = "gay123@gmail.com"
-# password = "040399"
 
 def get_browser_path() -> str:
     """
@@ -93,7 +87,7 @@ def first_enter(driver, username, password):
     title = driver.find_element(By.TAG_NAME,  'title').get_attribute('text')
 
     if title == "My Activities":
-        pickle.dump(driver.get_cookies() , open("cookies.pkl", "wb"))
+        pickle.dump(driver.get_cookies() , open(os.path.join(WORK_FOLDER, "cookies.pkl"), "wb"))
         return True
 
     else:
@@ -101,7 +95,7 @@ def first_enter(driver, username, password):
 
 def enter_by_cookies(driver):
     try:
-        cookies = pickle.load(open("cookies.pkl", "rb"))
+        cookies = pickle.load(open(os.path.join(WORK_FOLDER, "cookies.pkl"), "rb"))
     except:
         return False
     
@@ -117,9 +111,9 @@ def enter_by_cookies(driver):
     else:
         return False
 
-def fill_form(driver, sentence: str, miss: list, incorect: list, xpath_editor, xpath_miss, xpath_incrct):
+def fill_form(driver, sentences: str, miss: list, incorect: list, xpath_editor, xpath_miss, xpath_incrct):
     sentense_form = driver.find_element(By.XPATH, xpath_editor)
-    sentense_form.send_keys(sentence)
+    sentense_form.send_keys(sentences)
     sentense_form.send_keys(Keys.CONTROL + Keys.HOME)
     print("paste sentense")
 
@@ -130,6 +124,7 @@ def fill_form(driver, sentence: str, miss: list, incorect: list, xpath_editor, x
         # text = 'Add ' + f'"{sentence[positions[0]:sum(positions)]}"'
         # WebDriverWait(driver, 20).until(EC.text_to_be_present_in_element((By.XPATH, xpath_miss), text))
         driver.find_element(By.XPATH, xpath_miss).click()
+    sentense_form.click()
     print("paste miss")
 
     for word in incorect:
@@ -150,8 +145,9 @@ def create_game(driver, title, quantity,  list_sentences):
     xpath_editor = '//*[@id="editor_component_0"]/div/div/div/div[3]/div[1]'
     xpath_miss = '//*[@id="editor_component_0"]/div/div/div/div[3]/div[2]/a/span[2]'
     xpath_incrct = '//*[@id="editor_component_0"]/div/div/div/div[3]/div[3]/a'
+    
 
-    fill_form(driver, list_sentences[0].get('sentence'), list_sentences[0].get('miss'), list_sentences[0].get('incorect'), xpath_editor, xpath_miss, xpath_incrct)
+    fill_form(driver, list_sentences[0].get('sentences'), list_sentences[0].get('miss'), list_sentences[0].get('incorect'), xpath_editor, xpath_miss, xpath_incrct)
 
     #fill other forms
     if quantity > 1:
@@ -162,7 +158,7 @@ def create_game(driver, title, quantity,  list_sentences):
         for indx, catalog in enumerate(list_sentences[1:]):
             curr = indx + 3
             driver.find_element(By.XPATH, f'//*[@id="editor_div"]/div[{curr}]').click()
-            fill_form(driver, catalog.get('sentence'), catalog.get('miss'), catalog.get('incorect'), xpath_editor_more.format(curr), xpath_miss_more.format(curr), xpath_incrct_more.format(curr))
+            fill_form(driver, catalog.get('sentences'), catalog.get('miss'), catalog.get('incorect'), xpath_editor_more.format(curr), xpath_miss_more.format(curr), xpath_incrct_more.format(curr))
     
     driver.find_element(By.XPATH, '//*[@id="outer_wrapper"]/div[2]/div[7]/button').click()
     print('create, name = ', title)
@@ -218,17 +214,18 @@ def get_sentences(driver, phrase):
 if __name__=="__main__":
 
     driver = prepare_driver()
-    # first_enter(driver, username, password)
+    # first_enter(driver, 'gar111@gmail.com', '040399')
     print(f"enter by cookues = {enter_by_cookies(driver)}")
     # driver.get(WORDWALL_CREATE_URL)
     b = [
             {
-                'sentence' : "Our bus won't start because the battery is flat.",
+                'sentences' : "1. Our bus won't start because the battery is flat.\n2. We had to sprint to catch the bus.\n",
                 'miss' : [
                     (43, 4), #flat
-                    (32, 7), #battery
-                    (20, 7), #'because'
-                    (0, 7) #'Our bus'
+                    (35, 7), #battery
+                    (23, 7), #'because'
+                    (3, 7), #'Our bus'
+                    (75, 5)
                 ],
                 'incorect' : [
                     "rrrr",
@@ -236,18 +233,19 @@ if __name__=="__main__":
                 ]
             },
             {
-                'sentence' : "Our bus won't start because the battery is flat.",
+                'sentences' : "1. Our bus won't start because the battery is flat.\n2. We had to sprint to catch the bus.\n",
                 'miss' : [
                     (43, 4), #flat
-                    (32, 7), #battery
-                    (20, 7), #'because'
-                    (0, 7) #'Our bus'
+                    (35, 7), #battery
+                    (23, 7), #'because'
+                    (3, 7), #'Our bus'
+                    (75, 5)
                 ],
                 'incorect' : [
                     "rrrr",
                     "ddddd"
                 ]
-            }
+            },
         ]
     create_game(driver, "gay", len(b), b)
     
