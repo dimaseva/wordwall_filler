@@ -114,22 +114,21 @@ class App(CTk.CTk):
     def take_sentences(self, *args):
         self.phrase = self.phrase_find_entry.get()
         if self.phrase:
-            result = get_sentences(self.driver, self.phrase)
+            result = get_sentences(self.phrase)
             #change 1 to self.cur_page
             if result:
-                self.total = result['total']
-                self.sentences = result['sentences']
                 self.info_label_phrase.configure(text="")
-                for i, sentence in enumerate(self.sentences):
+                for i, sentence in enumerate(result):
                     label = CTk.CTkTextbox(master=self.frame_buttons, width=470, height=90, font=font, border_color='grey', border_width=3, fg_color='transparent', text_color='snow')
                     label.insert('insert', sentence)
-                    start = sentence.lower().find(self.phrase)
-                    label.tag_add('word', f'1.{start}', f'1.{start + len(self.phrase)}')
+                    start = sentence.lower().find(self.phrase.lower())
+                    end = start + len(self.phrase)
+                    label.tag_add('word', f'1.{start}', f'1.{end}')
                     label.tag_config('word', foreground="pale green")
                     label.configure(state= "disabled")
                     label.grid(row=i, column=0)
                     
-                    btn = CTk.CTkButton(master=self.frame_buttons, width=90, height=90, bg_color='transparent', fg_color='grey23', border_color='light blue', border_width=2, text='Choose', font=font, command = lambda s=sentence : self.sentence_choose(s))
+                    btn = CTk.CTkButton(master=self.frame_buttons, width=90, height=90, bg_color='transparent', fg_color='grey23', border_color='light blue', border_width=2, text='Choose', font=font, command = lambda s=sentence, start=start, end=end : self.sentence_choose(s, start, end))
                     btn.grid(column=1, row=i)
 
                 self.frame_buttons.update_idletasks()
@@ -142,16 +141,15 @@ class App(CTk.CTk):
         else:
             self.info_label_phrase.configure(text="Complete the phrase line")
 
-    def sentence_choose(self, sentence):
+    def sentence_choose(self, sentence, start, end):
         self.selected = sentence
 
         self.textbox_sentence_edit.insert('insert', self.selected)
 
-        start = self.selected.lower().find(self.phrase)
-        self.textbox_sentence_edit.tag_add('word', f'1.{start}', f'1.{start + len(self.phrase)}')
+        self.textbox_sentence_edit.tag_add('word', f'1.{start}', f'1.{end}')
         self.textbox_sentence_edit.tag_config('word', foreground="pale green")
 
-        self.missed_words_entry.insert('insert', self.selected[start:start + len(self.phrase)] + ',')
+        self.missed_words_entry.insert('insert', self.selected[start:end] + ',')
 
         self.show_phrase3()
 
@@ -159,10 +157,12 @@ class App(CTk.CTk):
         self.info_label_phrase.configure(text="")
         if self.textbox_sentence_edit.get("1.0", 'end') != '\n':
 
+            self.selected = f"{self.curr+1}. {self.selected}\n"
+
             for word in self.missed_words_entry.get().strip().split(','):
                 if not word:
                     continue
-                self.selected = f"{self.curr+1}. {self.selected}\n"
+                
                 start = (self.selected).find(word)
                 if start != -1:
                     self.miss_list.append((len(self.sentences_for_dict) + start, len(word)))
@@ -235,6 +235,11 @@ class App(CTk.CTk):
     def on_mousewheel(self, event):
         self.canvas.yview_scroll(int(-1*(event.delta/120)), "units")
 
+    def return_to_phrease1(self, *args):
+        self.clean_up()
+        self.show_phrase1()
+
+
 
 
 
@@ -268,21 +273,25 @@ class App(CTk.CTk):
 
     def show_phrase1(self):
         self.window_frame.place_forget()
+        self.p2.grid_forget()
         self.p3.grid_forget()
         # self.phrase_frame.place(relx=0.1, rely=0.1, anchor='s')
         self.phrase_frame.grid(row=0, column=0)
         self.p1.grid(row=2, column=0)
         self.bind('<Return>', self.take_sentences)
+        self.bind('<BackSpace>', lambda x : 1)
 
     def show_phrase2(self):
         self.p1.grid_forget()
         self.p2.grid(row=2, column=0)
         self.bind('<Return>', lambda x : 1)
+        self.bind('<BackSpace>', self.return_to_phrease1)
 
     def show_phrase3(self):
         self.p2.grid_forget()
         self.p3.grid(row=2, column=0)
         self.bind('<Return>', self.add_to_list)
+        self.bind('<BackSpace>', lambda x : 1)
 
     def show_penultimate(self):
         self.phrase_frame.grid_forget()

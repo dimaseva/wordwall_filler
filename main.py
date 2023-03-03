@@ -4,6 +4,8 @@ from selenium.webdriver.common.keys import Keys
 import requests, os, zipfile, pickle
 from selenium.webdriver.common.by import By
 import time 
+import requests
+import bs4 as bs
 
 
 
@@ -164,58 +166,66 @@ def create_game(driver, title, quantity,  list_sentences):
     print('create, name = ', title)
 
 
-def get_sentences(driver, phrase):
+def get_sentences(phrase):
     sentences_out = []
-    base_url = 'https://sentencedict.com/{}_{}.html'
-    phrase = phrase.strip().replace(' ', '%20')
-    url = base_url.format(phrase, 1)
-    driver.get(url)
-
-    WebDriverWait(driver, timeout=10).until(lambda d: d.find_element(By.TAG_NAME,"title"))
-    title = driver.find_element(By.TAG_NAME,  'title').get_attribute('text')
-    if title == "Sentence dictionary online - Good sentence examples for every word!":
-        return False
-
-    total = driver.find_element(By.XPATH, '/html/head/meta[2]').get_attribute('content')
-    pre_total = total[:total.find(' ')]
-    total = sum([int(i) for i in pre_total.split("+")])
     
-    sentences = driver.find_elements(By.XPATH, '//*[@id="all"]')[0].text
-    sentences = sentences.split('\n')
-    for val in sentences:
-        sentences_out.append(val[val.find(' ')+1:])
+    url = 'https://sentencedict.com/wordQueryDo.php'
 
-    if total <= 30:
-        return {
-        'total' : total,
-        'sentences' : sentences_out    
-        }
+    headers = {
+        'authority': 'sentencedict.com',
+        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+        'accept-language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7,uk;q=0.6',
+        'cache-control': 'max-age=0',
+        'origin': 'https://sentencedict.com',
+        'referer': 'https://sentencedict.com/',
+        'sec-ch-ua': '"Chromium";v="106", "Google Chrome";v="106", "Not;A=Brand";v="99"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'sec-fetch-dest': 'document',
+        'sec-fetch-mode': 'navigate',
+        'sec-fetch-site': 'same-origin',
+        'sec-fetch-user': '?1',
+        'upgrade-insecure-requests': '1',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36',
+    }
 
-    url = base_url.format(phrase, 2)
-    driver.get(url)
+    data = {
+        'q': '',
+        'word': phrase,
+        'directGo': '1',
+    }
 
-    sentences = driver.find_elements(By.XPATH, '//*[@id="all"]')[0].text
-    sentences = sentences.split('\n')
-    for val in sentences:
-        sentences_out.append(val[val.find(' ')+1:])
+    response = requests.post(url=url, headers=headers, data=data)
+    content = response.content
 
-    return {
-        'total' : len(sentences_out),
-        'sentences' : sentences_out    
-        }
+    soup = bs.BeautifulSoup(content,'html.parser')
+
+    elem_all = soup.find("div", {'id' : 'all'})
+
+    if elem_all:
+        for val in elem_all:
+            check = str(val.text)
+            if check and check != '\n':
+                sentences_out.append(check[check.find(' ')+1:])
+        
+        return sentences_out
+
+    elem_content = soup.find("div", {'id' : 'content'})
+    for val in elem_content:
+        check = str(val.text)
+        if check and check != '\n':
+            sentences_out.append(check[check.find(' ')+1:check.rfind('.')+1])
+    return sentences_out
+
+
+
     
-
-
-
-    
-    
-
 
 if __name__=="__main__":
 
-    driver = prepare_driver()
+    # driver = prepare_driver()
     # first_enter(driver, 'gar111@gmail.com', '040399')
-    print(f"enter by cookues = {enter_by_cookies(driver)}")
+    # print(f"enter by cookues = {enter_by_cookies(driver)}")
     # driver.get(WORDWALL_CREATE_URL)
     b = [
             {
@@ -247,9 +257,11 @@ if __name__=="__main__":
                 ]
             },
         ]
-    create_game(driver, "gay", len(b), b)
+    # create_game(driver, "gay", len(b), b)
+    # get_sentences('I consider myself')
+    # get_sentences('sajhflw')
+    # get_sentences('bus')
     
-    
-    WebDriverWait(driver, timeout=60).until(lambda d: d.find_element(By.TAG_NAME,"fewawda"))
+    # WebDriverWait(driver, timeout=60).until(lambda d: d.find_element(By.TAG_NAME,"fewawda"))
 
     # print(get_sentences(driver, 'Added'))
