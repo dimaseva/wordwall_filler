@@ -9,7 +9,9 @@ meme = [
 'войти через куки',
 'войти через коки',
 'ева лучшая эдишн',
-'тук-тук налоговая'
+'тук-тук налоговая',
+'баги наше всё',
+'о, прошли на три звезды уровень'
 ]
 
 CTk.set_appearance_mode("dark")
@@ -155,10 +157,9 @@ class App(CTk.CTk):
 
     def add_to_list(self, *args):
         self.info_label_phrase.configure(text="")
-        if self.textbox_sentence_edit.get("1.0", 'end') != '\n':
-
-            self.selected = f"{self.curr+1}. {self.selected}\n"
-
+        text = self.textbox_sentence_edit.get("1.0", 'end').replace('\n', '')
+        if text:
+            self.selected = f"{self.curr+1}. {text}\n"
             for word in self.missed_words_entry.get().strip().split(','):
                 if not word:
                     continue
@@ -172,7 +173,6 @@ class App(CTk.CTk):
                     return
             
             self.sentences_for_dict += self.selected
-
             self.incorect_list += [word for word in self.wrong_words_entry.get().strip().split(',')]
 
             self.curr += 1
@@ -198,7 +198,7 @@ class App(CTk.CTk):
     def make_game(self):
 
         create_game(self.driver, self.game_name, self.window_counter, self.list_of_settings)
-        # print(self.game_name, int(self.sentences_count), self.list_of_settings)
+        # print(self.game_name, int(self.sentences_count), self.list_of_settings, sep='\n')
 
         self.show_end()
 
