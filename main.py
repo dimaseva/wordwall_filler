@@ -88,7 +88,7 @@ def first_enter(driver, username, password):
     WebDriverWait(driver, timeout=10).until(lambda d: d.find_element(By.TAG_NAME,"title"))
     title = driver.find_element(By.TAG_NAME,  'title').get_attribute('text')
 
-    if title == "My Activities":
+    if title in ["My Activities", "Мої вправи", "Мои занятия"]:
         pickle.dump(driver.get_cookies() , open(os.path.join(WORK_FOLDER, "cookies.pkl"), "wb"))
         return True
 
@@ -108,7 +108,7 @@ def enter_by_cookies(driver):
 
     WebDriverWait(driver, timeout=10).until(lambda d: d.find_element(By.TAG_NAME,"title"))
     title = driver.find_element(By.TAG_NAME,  'title').get_attribute('text')
-    if title == "Wordwall | Create better lessons quicker":
+    if "Wordwall | " in title:
         return True
     else:
         return False
@@ -153,15 +153,17 @@ def create_game(driver, title, quantity,  list_sentences):
 
     #fill other forms
     if quantity > 1:
-        xpath_editor_more = '//*[@id="editor_div"]/div[{}]/div[3]/div[1]'#start from 3
-        xpath_miss_more = '//*[@id="editor_div"]/div[{}]/div[3]/div[2]/a/span[2]'
-        xpath_incrct_more = '//*[@id="editor_div"]/div[{}]/div[3]/div[3]/a'
+        xpath_editor_more = '//*[@id="editor_component_0"]/div/div/div[{}]/div[3]/div[1]'  # start from 2
+        xpath_miss_more = '//*[@id="editor_component_0"]/div/div/div[{}]/div[3]/div[2]/a/span[2]'
+        xpath_incrct_more = '//*[@id="editor_component_0"]/div/div/div[{}]/div[3]/div[3]/a'
 
         for indx, catalog in enumerate(list_sentences[1:]):
-            curr = indx + 3
+            curr = indx + 2
             driver.find_element(By.XPATH, f'//*[@id="editor_div"]/div[{curr}]').click()
             fill_form(driver, catalog.get('sentences'), catalog.get('miss'), catalog.get('incorect'), xpath_editor_more.format(curr), xpath_miss_more.format(curr), xpath_incrct_more.format(curr))
     
+    WebDriverWait(driver, timeout=10).until(lambda d: d.find_element(By.XPATH, '//*[@id="outer_wrapper"]/div[2]/div[7]/button'))
+    time.sleep(0.2)
     driver.find_element(By.XPATH, '//*[@id="outer_wrapper"]/div[2]/div[7]/button').click()
     print('create, name = ', title)
 
