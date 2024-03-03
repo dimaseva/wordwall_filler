@@ -9,3 +9,5 @@ self.process = subprocess.Popen(cmd, env=self.env, close_fds=platform.system() !
 To:
 
 self.process = subprocess.Popen(cmd, stdin=PIPE, stdout=PIPE ,stderr=PIPE, shell=False, creationflags=0x08000000)
+
+pyinstaller --noconfirm --onedir --windowed --add-data "venv\Lib\site-packages\customtkinter;customtkinter/"  "Missing Word Filler.py"
