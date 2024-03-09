@@ -6,12 +6,20 @@ from selenium.webdriver.common.by import By
 import time 
 import requests
 import bs4 as bs
-
+import logging
 
 
 WORK_FOLDER = "work_folder"
 WORDWALL_LOGIN_URL = "https://wordwall.net/account/login"
 WORDWALL_CREATE_URL = "https://wordwall.net/create/entercontent?templateId=36"
+
+logging.basicConfig(filename=os.path.join(WORK_FOLDER, "logs.log"),
+                    filemode='w',
+                    format='%(asctime)s,%(msecs)d %(levelname)s %(message)s',
+                    datefmt='%H:%M:%S',
+                    level=logging.INFO)
+
+logger = logging.getLogger(__name__)
 
 def get_browser_path() -> str:
     """
@@ -24,6 +32,7 @@ def get_browser_path() -> str:
 
     try:
         if os.path.exists(os.path.join(folder_path2, "chrome.exe")):
+            logger.info("Folder with already created")
             return os.path.join(folder_path2, "chrome.exe")
         else:
             raise FileNotFoundError
@@ -43,6 +52,7 @@ def get_browser_path() -> str:
             zip_ref.extractall(folder_path)
 
         os.remove(browser_zip)
+        logger.info("Browser n driver download and ready")
         return os.path.join(folder_path2, "chrome.exe")
 
 def get_webdriver_path() -> str:
@@ -72,6 +82,7 @@ def get_webdriver_path() -> str:
         return os.path.join(folder_path, "chromedriver.exe")
 
 def prepare_driver() -> webdriver.Chrome:
+    logger.info("Preparing driver")
     options = webdriver.ChromeOptions()
     options.binary_location = get_browser_path()
     options.add_argument('headless')
@@ -79,61 +90,72 @@ def prepare_driver() -> webdriver.Chrome:
     return webdriver.Chrome(executable_path=get_webdriver_path(), chrome_options=options)
 
 def first_enter(driver, username, password):
-    driver.get(WORDWALL_LOGIN_URL)
-    driver.find_element('id', "Email").send_keys(username)
-    driver.find_element('id', "Password").send_keys(password)
-    checkbox = driver.find_element('id', "RememberMe")
-    checkbox.click()
-    checkbox.send_keys(Keys.ENTER)
-    WebDriverWait(driver, timeout=10).until(lambda d: d.find_element(By.TAG_NAME,"title"))
-    title = driver.find_element(By.TAG_NAME,  'title').get_attribute('text')
+    try:
+        driver.get(WORDWALL_LOGIN_URL)
+        driver.find_element('id', "Email").send_keys(username)
+        driver.find_element('id', "Password").send_keys(password)
+        checkbox = driver.find_element('id', "RememberMe")
+        checkbox.click()
+        checkbox.send_keys(Keys.ENTER)
+        WebDriverWait(driver, timeout=10).until(lambda d: d.find_element(By.TAG_NAME,"title"))
+        title = driver.find_element(By.TAG_NAME,  'title').get_attribute('text')
 
-    if title in ["My Activities", "Мої вправи", "Мои занятия"]:
-        pickle.dump(driver.get_cookies() , open(os.path.join(WORK_FOLDER, "cookies.pkl"), "wb"))
-        return True
+        if title in ["My Activities", "Мої вправи", "Мои занятия"]:
+            pickle.dump(driver.get_cookies() , open(os.path.join(WORK_FOLDER, "cookies.pkl"), "wb"))
+            return True
 
-    else:
-        return False
+        else:
+            return False
+    except Exception as e:
+        logger.error(e, exc_info=True)
+
 
 def enter_by_cookies(driver):
     try:
         cookies = pickle.load(open(os.path.join(WORK_FOLDER, "cookies.pkl"), "rb"))
     except:
+        logger.error("Cookies are broken, try re-login", exc_info=True)
         return False
-    
-    driver.get(WORDWALL_LOGIN_URL)
-    for cookie in cookies:
-        driver.add_cookie(cookie)
-    driver.get(WORDWALL_CREATE_URL)
 
-    WebDriverWait(driver, timeout=10).until(lambda d: d.find_element(By.TAG_NAME,"title"))
-    title = driver.find_element(By.TAG_NAME,  'title').get_attribute('text')
-    if "Wordwall | " in title:
-        return True
-    else:
-        return False
+    try:
+        driver.get(WORDWALL_LOGIN_URL)
+        for cookie in cookies:
+            driver.add_cookie(cookie)
+        driver.get(WORDWALL_CREATE_URL)
+
+        WebDriverWait(driver, timeout=10).until(lambda d: d.find_element(By.TAG_NAME,"title"))
+        title = driver.find_element(By.TAG_NAME,  'title').get_attribute('text')
+        if "Wordwall | " in title:
+            return True
+        else:
+            return False
+    except Exception as e:
+        logger.error(e, exc_info=True)
 
 def fill_form(driver, sentences: str, miss: list, incorect: list, xpath_editor, xpath_miss, xpath_incrct):
-    sentense_form = driver.find_element(By.XPATH, xpath_editor)
-    sentense_form.send_keys(sentences)
-    sentense_form.send_keys(Keys.CONTROL + Keys.HOME)
-    print("paste sentense")
+    try:
+        sentense_form = driver.find_element(By.XPATH, xpath_editor)
+        sentense_form.send_keys(sentences)
+        sentense_form.send_keys(Keys.CONTROL + Keys.HOME)
+        print("paste sentense")
 
-    for positions in miss:
-        
-        sentense_form.send_keys(Keys.RIGHT * positions[0] + (Keys.SHIFT + Keys.RIGHT* positions[1]))
-        time.sleep(0.2)
-        # text = 'Add ' + f'"{sentence[positions[0]:sum(positions)]}"'
-        # WebDriverWait(driver, 20).until(EC.text_to_be_present_in_element((By.XPATH, xpath_miss), text))
-        driver.find_element(By.XPATH, xpath_miss).click()
-    sentense_form.click()
-    print("paste miss")
+        for positions in miss:
+            
+            sentense_form.send_keys(Keys.RIGHT * positions[0] + (Keys.SHIFT + Keys.RIGHT* positions[1]))
+            time.sleep(0.2)
+            # text = 'Add ' + f'"{sentence[positions[0]:sum(positions)]}"'
+            # WebDriverWait(driver, 20).until(EC.text_to_be_present_in_element((By.XPATH, xpath_miss), text))
+            driver.find_element(By.XPATH, xpath_miss).click()
+        sentense_form.click()
+        print("paste miss")
 
-    for word in incorect:
-        driver.find_element(By.XPATH, xpath_incrct).click()
-        driver.find_element(By.XPATH, '/html/body/div[5]/div[2]/div/div[2]/input').send_keys(word)
-        driver.find_element(By.XPATH, '/html/body/div[5]/div[2]/div/div[3]/button').click()
-    print("paste inc")
+        for word in incorect:
+            driver.find_element(By.XPATH, xpath_incrct).click()
+            driver.find_element(By.XPATH, '/html/body/div[5]/div[2]/div/div[2]/input').send_keys(word)
+            driver.find_element(By.XPATH, '/html/body/div[5]/div[2]/div/div[3]/button').click()
+        print("paste inc")
+    except:
+        logger.error("Error while filling forms", exc_info=True)
 
 def create_game(driver, title, quantity,  list_sentences):
     driver.get(WORDWALL_CREATE_URL)
@@ -159,13 +181,19 @@ def create_game(driver, title, quantity,  list_sentences):
 
         for indx, catalog in enumerate(list_sentences[1:]):
             curr = indx + 2
-            driver.find_element(By.XPATH, f'//*[@id="editor_div"]/div[{curr}]').click()
+            try:
+                driver.find_element(By.XPATH, f'//*[@id="editor_div"]/div[{curr}]').click()
+            except:
+                logger.error("Can`t find add new window button", exc_info=True)
             fill_form(driver, catalog.get('sentences'), catalog.get('miss'), catalog.get('incorect'), xpath_editor_more.format(curr), xpath_miss_more.format(curr), xpath_incrct_more.format(curr))
-    
-    WebDriverWait(driver, timeout=10).until(lambda d: d.find_element(By.XPATH, '//*[@id="outer_wrapper"]/div[2]/div[7]/button'))
-    time.sleep(0.2)
-    driver.find_element(By.XPATH, '//*[@id="outer_wrapper"]/div[2]/div[7]/button').click()
-    print('create, name = ', title)
+
+    try:    
+        WebDriverWait(driver, timeout=10).until(lambda d: d.find_element(By.XPATH, '//*[@id="outer_wrapper"]/div[2]/div[7]/button'))
+        time.sleep(0.2)
+        driver.find_element(By.XPATH, '//*[@id="outer_wrapper"]/div[2]/div[7]/button').click()
+        print('create, name = ', title)
+    except:
+        logger.error("Error while clicking on create button", exc_info=True)
 
 
 def get_sentences(phrase):
@@ -197,27 +225,30 @@ def get_sentences(phrase):
         'directGo': '1',
     }
 
-    response = requests.post(url=url, headers=headers, data=data)
-    content = response.content
+    try:
+        response = requests.post(url=url, headers=headers, data=data)
+        content = response.content
 
-    soup = bs.BeautifulSoup(content,'html.parser')
+        soup = bs.BeautifulSoup(content,'html.parser')
 
-    elem_all = soup.find("div", {'id' : 'all'})
+        elem_all = soup.find("div", {'id' : 'all'})
 
-    if elem_all:
-        for val in elem_all:
+        if elem_all:
+            for val in elem_all:
+                check = str(val.text)
+                if check and check != '\n':
+                    sentences_out.append(check[check.find(' ')+1:])
+            
+            return sentences_out
+
+        elem_content = soup.find("div", {'id' : 'content'})
+        for val in elem_content:
             check = str(val.text)
             if check and check != '\n':
-                sentences_out.append(check[check.find(' ')+1:])
-        
+                sentences_out.append(check[check.find(' ')+1:check.rfind('.')+1])
         return sentences_out
-
-    elem_content = soup.find("div", {'id' : 'content'})
-    for val in elem_content:
-        check = str(val.text)
-        if check and check != '\n':
-            sentences_out.append(check[check.find(' ')+1:check.rfind('.')+1])
-    return sentences_out
+    except:
+        logger.error("Error while getting sentences", exc_info=True)
 
 
 
