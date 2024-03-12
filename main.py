@@ -134,8 +134,6 @@ def enter_by_cookies(driver):
 
 def fill_form(driver, sentences: str, miss: list, incorect: list, xpath_editor, xpath_miss, xpath_incrct):
     try:
-        WebDriverWait(driver, timeout=10).until(lambda d: d.find_element(By.XPATH, xpath_editor))
-        time.sleep(0.2)
         sentense_form = driver.find_element(By.XPATH, xpath_editor)
         sentense_form.send_keys(sentences)
         sentense_form.send_keys(Keys.CONTROL + Keys.HOME)
@@ -185,6 +183,7 @@ def create_game(driver, title, quantity,  list_sentences):
             curr = indx + 2
             try:
                 driver.find_element(By.XPATH, f'//*[@id="editor_div"]/div[{curr}]').click()
+                driver.find_element(By.XPATH, f'//*[@id="editor_div"]/div[{curr+1}]').click()
             except:
                 logger.error("Can`t find add new window button", exc_info=True)
             fill_form(driver, catalog.get('sentences'), catalog.get('miss'), catalog.get('incorect'), xpath_editor_more.format(curr), xpath_miss_more.format(curr), xpath_incrct_more.format(curr))
