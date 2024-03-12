@@ -134,6 +134,8 @@ def enter_by_cookies(driver):
 
 def fill_form(driver, sentences: str, miss: list, incorect: list, xpath_editor, xpath_miss, xpath_incrct):
     try:
+        WebDriverWait(driver, timeout=10).until(lambda d: d.find_element(By.XPATH, xpath_editor))
+        time.sleep(0.2)
         sentense_form = driver.find_element(By.XPATH, xpath_editor)
         sentense_form.send_keys(sentences)
         sentense_form.send_keys(Keys.CONTROL + Keys.HOME)
